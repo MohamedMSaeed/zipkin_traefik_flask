@@ -1,0 +1,70 @@
+version: "3.4"
+
+services:
+  traefik:
+    image: traefik:2.1.6
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--log.level=info"
+      - "--log.format=json"
+      - "--providers.docker.defaultrule=Host(`{{ normalize .Name }}.docker.localhost`)"
+      - "--tracing=true"
+      - "--tracing.serviceName=traefik"
+      - "--tracing.spanNameLimit=0"
+      - "--tracing.zipkin=true"
+      - "--tracing.zipkin.httpEndpoint=http://zipkin:9411/api/v2/spans"
+      - "--tracing.zipkin.sameSpan=true"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: zipkin
+    labels:
+      - "traefik.http.services.zipkin.loadbalancer.server.port=9411"
+      - "traefik.http.routers.zipkin.rule=Host(`zipkin.docker.localhost`)"
+
+
+  api_01:
+    build:
+      context: api_01
+    container_name: api_01
+    labels:
+      - "traefik.http.routers.api_01.rule=Host(`api_01.docker.localhost`)"
+      - "traefik.http.services.api_01.loadbalancer.server.port=5000"
+    volumes:
+      - './api_01:/app'
+    environment:
+      - PYTHONUNBUFFERED=1
+
+
+  api_02:
+    build:
+      context: api_02
+    container_name: api_02
+    labels:
+      - "traefik.http.routers.api_02.rule=Host(`api_02.docker.localhost`)"
+      - "traefik.http.services.api_02.loadbalancer.server.port=5000"
+    volumes:
+      - './api_02:/app'
+    environment:
+      - PYTHONUNBUFFERED=1
+
+
+  api_03:
+    build:
+      context: api_03
+    container_name: api_03
+    labels:
+      - "traefik.http.routers.api_03.rule=Host(`api_03.docker.localhost`)"
+      - "traefik.http.services.api_03.loadbalancer.server.port=5000"
+    volumes:
+      - './api_03:/app'
+    environment:
+      - PYTHONUNBUFFERED=1
